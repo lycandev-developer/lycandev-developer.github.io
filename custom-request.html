@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Request Custom Software - LycanDev</title>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet" />
   <style>
     body {
       margin: 0;
@@ -18,6 +17,7 @@
       padding: 1rem 2rem;
       color: #66fcf1;
       font-size: 1.5rem;
+      text-align: center;
     }
     main {
       padding: 2rem;
@@ -36,7 +36,9 @@
       padding: 2rem;
       border-radius: 1rem;
     }
-    input, textarea, button {
+    input,
+    textarea,
+    button {
       padding: 0.75rem;
       font-size: 1rem;
       border-radius: 0.5rem;
@@ -47,11 +49,17 @@
       color: #0b0c10;
       font-weight: bold;
       cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:disabled {
+      background: #3b9ea1;
+      cursor: default;
     }
     #status {
       text-align: center;
       margin-top: 1rem;
       font-size: 0.95rem;
+      min-height: 1.2em;
     }
     .success {
       color: #66fcf1;
@@ -71,9 +79,10 @@
   <header>LycanDev / Request Custom</header>
   <main>
     <h1>Request a Custom Program</h1>
-    <form id="customForm">
-      <input type="text" name="name" placeholder="Your Name" required>
-      <input type="email" name="email" placeholder="Your Email" required>
+    <form id="customForm" action="https://formsubmit.co/LycanDev@hotmail.com" method="POST">
+      <input type="hidden" name="_captcha" value="false" />
+      <input type="text" name="name" placeholder="Your Name" required />
+      <input type="email" name="email" placeholder="Your Email" required />
       <textarea name="description" placeholder="Describe what you need..." rows="6" required></textarea>
       <button type="submit">Send Request</button>
       <div id="status"></div>
@@ -82,27 +91,42 @@
   <footer>
     &copy; 2025 LycanDev. All rights reserved.
   </footer>
-  <script>
-    emailjs.init('XSwM0U9I9T68zBzxG'); // Replace with your EmailJS public key
 
+  <script>
     const form = document.getElementById('customForm');
     const statusDiv = document.getElementById('status');
     const button = form.querySelector('button');
 
-    form.addEventListener('submit', function (e) {
+    form.addEventListener('submit', (e) => {
       e.preventDefault();
       statusDiv.textContent = '';
       statusDiv.className = '';
       button.disabled = true;
       button.textContent = 'Sending...';
 
-      emailjs.sendForm('service_6zqzfz8', 'template_q3pm4na', this)
-        .then(() => {
-          statusDiv.textContent = '✅ Request sent successfully!';
-          statusDiv.className = 'success';
-          form.reset();
-        }, (error) => {
-          statusDiv.textContent = '❌ Failed to send request.';
+      // Use fetch to submit form data to Formsubmit
+      const formData = new FormData(form);
+
+      fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          Accept: 'application/json',
+        },
+      })
+        .then((response) => {
+          if (response.ok) {
+            statusDiv.textContent = '✅ Request sent successfully!';
+            statusDiv.className = 'success';
+            form.reset();
+          } else {
+            return response.json().then((data) => {
+              throw new Error(data.error || 'Failed to send request.');
+            });
+          }
+        })
+        .catch((error) => {
+          statusDiv.textContent = '❌ ' + error.message;
           statusDiv.className = 'error';
           console.error(error);
         })
