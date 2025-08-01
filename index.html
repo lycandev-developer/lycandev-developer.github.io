@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LycanDev - Custom Software & Tools</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #0b0c10;
+      --accent-color: #66fcf1;
+      --text-color: #c5c6c7;
+      --card-bg: #1f2833;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Orbitron', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+    }
+
+    header {
+      background-color: #1f2833;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    header h1 {
+      color: var(--accent-color);
+      margin: 0;
+    }
+
+    nav a {
+      color: var(--text-color);
+      text-decoration: none;
+      margin-left: 1.5rem;
+      font-weight: bold;
+    }
+
+    .hero {
+      padding: 4rem 2rem;
+      text-align: center;
+    }
+
+    .hero h2 {
+      font-size: 2.5rem;
+      color: var(--accent-color);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 2rem;
+      padding: 2rem;
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid #45a29e;
+      padding: 1.5rem;
+      border-radius: 0.75rem;
+      box-shadow: 0 0 12px #0005;
+    }
+
+    .card h3 {
+      color: var(--accent-color);
+      margin-top: 0;
+    }
+
+    .card a {
+      color: var(--accent-color);
+      text-decoration: underline;
+      display: block;
+      margin-top: 0.5rem;
+    }
+
+    footer {
+      text-align: center;
+      padding: 2rem;
+      font-size: 0.875rem;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>LycanDev</h1>
+    <nav>
+      <a href="#products">Products</a>
+      <a href="custom-request.html">Request Custom</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <h2>Custom Programs. Razor Sharp. Wolf-Built.</h2>
+    <p>Welcome to LycanDev. We make tools, apps, and systems tailored to your needs — or choose from our ready-to-run library.</p>
+  </section>
+
+  <section id="products" class="grid">
+    <div class="card">
+      <h3>FocusTracker</h3>
+      <p>A simple offline productivity tracker for devs and freelancers.</p>
+      <a href="focus-tracker.html">View Page</a>
+    </div>
+    <div class="card">
+      <h3>MapMind</h3>
+      <p>Build, connect, and explore visual thoughts in an interactive graph.</p>
+      <a href="mapmind.html">View Page</a>
+    </div>
+    <div class="card">
+      <h3>Dungeon Whisper</h3>
+      <p>An AI-powered DM assistant for TTRPGs. Handles lore, NPCs, and mood.</p>
+      <a href="dungeon-whisper.html">View Page</a>
+    </div>
+  </section>
+
+  <footer>
+    &copy; 2025 LycanDev. All rights reserved.
+  </footer>
+</body>
+</html>
