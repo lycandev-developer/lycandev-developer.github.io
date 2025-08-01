@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Request Custom Software - LycanDev</title>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
   <style>
     body {
       margin: 0;
@@ -82,45 +83,33 @@
     &copy; 2025 LycanDev. All rights reserved.
   </footer>
   <script>
+    emailjs.init('XSwM0U9I9T68zBzxG'); // Replace with your EmailJS public key
+
     const form = document.getElementById('customForm');
     const statusDiv = document.getElementById('status');
     const button = form.querySelector('button');
 
-    form.addEventListener('submit', async (e) => {
+    form.addEventListener('submit', function (e) {
       e.preventDefault();
       statusDiv.textContent = '';
       statusDiv.className = '';
       button.disabled = true;
       button.textContent = 'Sending...';
 
-      const formData = new FormData(form);
-      const data = Object.fromEntries(formData.entries());
-
-      try {
-        const response = await fetch('/api/request', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(data)
-        });
-
-        if (response.ok) {
+      emailjs.sendForm('service_6zqzfz8', 'template_q3pm4na', this)
+        .then(() => {
           statusDiv.textContent = '✅ Request sent successfully!';
           statusDiv.className = 'success';
           form.reset();
-        } else {
-          const result = await response.json();
-          statusDiv.textContent = result.error || '❌ Failed to send request.';
+        }, (error) => {
+          statusDiv.textContent = '❌ Failed to send request.';
           statusDiv.className = 'error';
-        }
-      } catch (err) {
-        statusDiv.textContent = '❌ Network or server error.';
-        statusDiv.className = 'error';
-      }
-
-      button.disabled = false;
-      button.textContent = 'Send Request';
+          console.error(error);
+        })
+        .finally(() => {
+          button.disabled = false;
+          button.textContent = 'Send Request';
+        });
     });
   </script>
 </body>
