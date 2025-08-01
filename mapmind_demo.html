@@ -15,10 +15,53 @@
     overflow: hidden;
   }
 
+  /* Sticky menu bar */
+  #menu-bar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 48px;
+    background: #12141e;
+    border-bottom: 2px solid #f59e0b;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    z-index: 2000;
+    user-select: none;
+  }
+
+  #menu-bar h1 {
+    font-weight: 700;
+    font-size: 1.2rem;
+    margin: 0;
+    color: #f59e0b;
+    flex-grow: 1;
+  }
+
+  #menu-bar button {
+    background: #f59e0b;
+    border: none;
+    color: #12141e;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    margin-left: 12px;
+    transition: background 0.3s ease;
+  }
+
+  #menu-bar button:hover {
+    background: #ffa62b;
+  }
+
+  /* SVG takes full screen below menu bar */
   svg {
     display: block;
+    position: fixed;
+    top: 48px;
+    left: 0;
     width: 100vw;
-    height: 100vh;
+    height: calc(100vh - 48px);
     background: #12141e;
     cursor: crosshair;
   }
@@ -45,7 +88,7 @@
   /* Editing modal */
   #edit-modal {
     position: absolute;
-    top: 20px;
+    top: 60px; /* below menu bar */
     left: 20px;
     background: #1a1c29;
     border: 2px solid #f59e0b;
@@ -92,13 +135,18 @@
     background: #ffa62b;
   }
 
-  /* Tooltip cursor highlight on nodes */
   circle.node:hover {
     stroke-width: 3px;
   }
 </style>
 </head>
 <body>
+
+<div id="menu-bar">
+  <h1>Mindspace Explorer</h1>
+  <button id="add-node-btn" title="Add New Node">+ Add Node</button>
+  <button id="clear-select-btn" title="Clear Selection">Clear Selection</button>
+</div>
 
 <svg id="mindmap"></svg>
 
@@ -112,15 +160,15 @@
 <script>
 (() => {
   const svg = d3.select("#mindmap");
-  const width = window.innerWidth;
-  const height = window.innerHeight;
+  const menuHeight = 48;
+  let width = window.innerWidth;
+  let height = window.innerHeight - menuHeight;
 
   let nodes = [];
   let links = [];
   let multiSelect = [];
   let editingNode = null;
 
-  // Append a root node for starter
   nodes.push({
     id: "root",
     label: "Root Idea",
@@ -146,7 +194,6 @@
   const nodeGroup = svg.append("g").attr("class", "nodes");
 
   function update() {
-    // Normalize links source/target to ids
     links = links.map(l => ({
       source: typeof l.source === "object" ? l.source.id : l.source,
       target: typeof l.target === "object" ? l.target.id : l.target,
@@ -156,13 +203,11 @@
     simulation.force("link").links(links);
     simulation.alpha(0.5).restart();
 
-    // LINKS
     const link = linkGroup.selectAll("line.link").data(links, d => d.source + "-" + d.target);
     link.exit().remove();
     const linkEnter = link.enter().append("line").attr("class", "link");
     linkEnter.merge(link);
 
-    // NODES
     const node = nodeGroup.selectAll("g.node").data(nodes, d => d.id);
     node.exit().remove();
 
@@ -174,15 +219,13 @@
       .on("click", (event, d) => {
         event.stopPropagation();
         if (event.shiftKey) {
-          // multi select toggle
           if (multiSelect.includes(d.id)) {
             multiSelect = multiSelect.filter(id => id !== d.id);
           } else {
             multiSelect.push(d.id);
           }
-          update(); // to update colors/highlights
+          update();
         } else if (multiSelect.length > 0) {
-          // connect multi selected nodes to this node
           multiSelect.forEach(source => {
             if (source !== d.id && !links.find(l => (l.source === source && l.target === d.id) || (l.source === d.id && l.target === source))) {
               links.push({ source, target: d.id });
@@ -191,13 +234,11 @@
           multiSelect = [];
           update();
         } else {
-          // open edit modal
           openEditModal(d);
         }
       })
       .on("contextmenu", (event, d) => {
         event.preventDefault();
-        // delete node & its links
         nodes = nodes.filter(n => n.id !== d.id);
         links = links.filter(l => l.source !== d.id && l.target !== d.id);
         if (editingNode && editingNode.id === d.id) {
@@ -224,7 +265,7 @@
     nodeEnter.merge(node)
       .select("circle")
       .attr("fill", d => d.color || "#5555ff")
-      .attr("stroke", d => multiSelect.includes(d.id) ? "#38bdf8" : "#f59e0b") // neon blue highlight when selected
+      .attr("stroke", d => multiSelect.includes(d.id) ? "#38bdf8" : "#f59e0b")
       .attr("stroke-width", d => multiSelect.includes(d.id) ? 4 : 2);
 
     nodeEnter.merge(node)
@@ -303,10 +344,25 @@
     update();
   });
 
+  // Add node button
+  document.getElementById("add-node-btn").onclick = () => {
+    const id = Date.now().toString();
+    nodes.push({ id, label: "New Node", x: width / 2, y: height / 2, color: "#5555ff" });
+    update();
+  };
+
+  // Clear multi-select button
+  document.getElementById("clear-select-btn").onclick = () => {
+    multiSelect = [];
+    update();
+  };
+
   // Resize handling
   window.addEventListener("resize", () => {
-    svg.attr("width", window.innerWidth).attr("height", window.innerHeight);
-    simulation.force("center", d3.forceCenter(window.innerWidth / 2, window.innerHeight / 2));
+    width = window.innerWidth;
+    height = window.innerHeight - menuHeight;
+    svg.attr("width", width).attr("height", height);
+    simulation.force("center", d3.forceCenter(width / 2, height / 2));
     simulation.alpha(0.5).restart();
   });
 
