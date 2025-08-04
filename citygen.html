@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Procedural City Generator</title>
+  <style>
+    body { margin: 0; font-family: sans-serif; }
+    #controls { position: absolute; top: 0; left: 0; background: rgba(0,0,0,0.7); color: #fff; padding: 1rem; z-index: 2; }
+    canvas { display: block; }
+    button { margin-top: 0.5rem; display: block; }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <label>Population: <input type="number" id="population" value="50000" /></label><br>
+    <label>Terrain:
+      <select id="terrain">
+        <option value="flat">Flat</option>
+        <option value="coastal">Coastal</option>
+        <option value="hilly">Hilly</option>
+      </select>
+    </label><br>
+    <label>Lore:
+      <select id="lore">
+        <option value="medieval">Medieval</option>
+        <option value="cyberpunk">Cyberpunk</option>
+        <option value="fantasy">Fantasy</option>
+      </select>
+    </label><br>
+    <button id="generate">Generate City</button>
+    <button id="export">Export PNG</button>
+  </div>
+  <canvas id="cityCanvas"></canvas>
+  <script>
+    const canvas = document.getElementById('cityCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    function noise(x, y) {
+      // Basic hash-based pseudo-noise
+      return Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453) % 1;
+    }
+
+    function generateTerrainMap(type) {
+      const map = [];
+      for (let y = 0; y < 100; y++) {
+        map[y] = [];
+        for (let x = 0; x < 100; x++) {
+          let val = noise(x / 10, y / 10);
+          if (type === 'coastal') val -= y / 150;
+          if (type === 'hilly') val *= 1.5;
+          map[y][x] = val;
+        }
+      }
+      return map;
+    }
+
+    function generateDistricts(map, population, lore) {
+      const districts = [];
+      const numDistricts = Math.max(5, Math.floor(population / 10000));
+      for (let i = 0; i < numDistricts; i++) {
+        const x = Math.floor(Math.random() * 100);
+        const y = Math.floor(Math.random() * 100);
+        const type = ['residential', 'commercial', 'industrial', 'slum', 'elite'][i % 5];
+        districts.push({ x, y, type, lore });
+      }
+      return districts;
+    }
+
+    function generateRoads(map, districts) {
+      const roads = [];
+      for (let i = 0; i < districts.length - 1; i++) {
+        roads.push({ from: districts[i], to: districts[i + 1] });
+      }
+      return roads;
+    }
+
+    function placeBuildings(districts, population, lore) {
+      const buildings = [];
+      districts.forEach(d => {
+        const count = Math.floor(population / 1000);
+        for (let i = 0; i < count; i++) {
+          buildings.push({
+            x: d.x * 10 + (Math.random() - 0.5) * 20,
+            y: d.y * 10 + (Math.random() - 0.5) * 20,
+            type: d.type,
+            style: lore
+          });
+        }
+      });
+      return buildings;
+    }
+
+    function drawCity(map, districts, roads, buildings) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const scale = 6;
+
+      // Draw terrain
+      for (let y = 0; y < 100; y++) {
+        for (let x = 0; x < 100; x++) {
+          const val = map[y][x];
+          const color = `rgb(${val * 100 + 50}, ${val * 100 + 70}, ${val * 100 + 90})`;
+          ctx.fillStyle = color;
+          ctx.fillRect(x * scale, y * scale, scale, scale);
+        }
+      }
+
+      // Draw districts
+      districts.forEach(d => {
+        ctx.fillStyle = 'yellow';
+        ctx.beginPath();
+        ctx.arc(d.x * scale, d.y * scale, 5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Draw roads
+      roads.forEach(r => {
+        ctx.strokeStyle = '#222';
+        ctx.beginPath();
+        ctx.moveTo(r.from.x * scale, r.from.y * scale);
+        ctx.lineTo(r.to.x * scale, r.to.y * scale);
+        ctx.stroke();
+      });
+
+      // Draw buildings
+      buildings.forEach(b => {
+        ctx.fillStyle = {
+          residential: '#2ecc71',
+          commercial: '#3498db',
+          industrial: '#e67e22',
+          slum: '#7f8c8d',
+          elite: '#9b59b6'
+        }[b.type] || '#ccc';
+        ctx.fillRect(b.x * scale, b.y * scale, 3, 3);
+      });
+    }
+
+    document.getElementById('generate').onclick = () => {
+      const population = parseInt(document.getElementById('population').value);
+      const terrain = document.getElementById('terrain').value;
+      const lore = document.getElementById('lore').value;
+      const map = generateTerrainMap(terrain);
+      const districts = generateDistricts(map, population, lore);
+      const roads = generateRoads(map, districts);
+      const buildings = placeBuildings(districts, population, lore);
+      drawCity(map, districts, roads, buildings);
+    };
+
+    document.getElementById('export').onclick = () => {
+      const link = document.createElement('a');
+      link.download = 'city.png';
+      link.href = canvas.toDataURL();
+      link.click();
+    };
+  </script>
+</body>
+</html>
