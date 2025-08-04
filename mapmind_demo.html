@@ -1,386 +1,196 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Mindspace Explorer - LycanDev Theme</title>
-<style>
-  /* --- LycanDev Dark Theme --- */
-  body, html {
-    margin: 0; padding: 0; height: 100%; width: 100%;
-    background-color: #0f111a;
-    color: #eee;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    user-select: none;
-    overflow: hidden;
-  }
+  <meta charset="UTF-8" />
+  <title>Mindspace Explorer</title>
+  <style>
+    html, body {
+      margin: 0;
+      background: #111;
+      color: white;
+      font-family: 'Segoe UI', sans-serif;
+      overflow: hidden;
+    }
 
-  /* Sticky menu bar */
-  #menu-bar {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    height: 48px;
-    background: #12141e;
-    border-bottom: 2px solid #f59e0b;
-    display: flex;
-    align-items: center;
-    padding: 0 16px;
-    z-index: 2000;
-    user-select: none;
-  }
+    svg {
+      width: 100vw;
+      height: 100vh;
+      cursor: crosshair;
+    }
 
-  #menu-bar h1 {
-    font-weight: 700;
-    font-size: 1.2rem;
-    margin: 0;
-    color: #f59e0b;
-    flex-grow: 1;
-  }
+    .edit-box {
+      position: fixed;
+      bottom: 1rem;
+      left: 1rem;
+      background: #1a1a1a;
+      padding: 1rem;
+      border-radius: 10px;
+      border: 1px solid white;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
 
-  #menu-bar button {
-    background: #f59e0b;
-    border: none;
-    color: #12141e;
-    font-weight: 700;
-    padding: 6px 14px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    margin-left: 12px;
-    transition: background 0.3s ease;
-  }
+    .edit-box input {
+      border: 1px solid white;
+      background: #222;
+      color: white;
+      padding: 4px;
+    }
 
-  #menu-bar button:hover {
-    background: #ffa62b;
-  }
-
-  /* SVG takes full screen below menu bar */
-  svg {
-    display: block;
-    position: fixed;
-    top: 48px;
-    left: 0;
-    width: 100vw;
-    height: calc(100vh - 48px);
-    background: #12141e;
-    cursor: crosshair;
-  }
-
-  circle.node {
-    stroke: #f59e0b; /* neon orange border */
-    stroke-width: 2px;
-    cursor: pointer;
-  }
-
-  line.link {
-    stroke: white;
-    stroke-opacity: 0.85;
-    stroke-width: 2;
-  }
-
-  text {
-    pointer-events: none;
-    user-select: none;
-    font-weight: 600;
-    font-size: 14px;
-  }
-
-  /* Editing modal */
-  #edit-modal {
-    position: absolute;
-    top: 60px; /* below menu bar */
-    left: 20px;
-    background: #1a1c29;
-    border: 2px solid #f59e0b;
-    border-radius: 8px;
-    padding: 12px;
-    display: none;
-    z-index: 1000;
-    width: 250px;
-    box-shadow: 0 0 12px #f59e0baa;
-  }
-
-  #edit-modal input[type="text"] {
-    width: 100%;
-    padding: 6px 8px;
-    margin-bottom: 8px;
-    background: #12141e;
-    border: 1px solid #f59e0b;
-    border-radius: 4px;
-    color: #eee;
-    font-size: 14px;
-  }
-
-  #edit-modal input[type="color"] {
-    width: 50px;
-    height: 32px;
-    border: none;
-    padding: 0;
-    margin-bottom: 8px;
-    cursor: pointer;
-  }
-
-  #edit-modal button {
-    background: #f59e0b;
-    border: none;
-    color: #12141e;
-    font-weight: 700;
-    padding: 8px 12px;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background 0.3s ease;
-  }
-
-  #edit-modal button:hover {
-    background: #ffa62b;
-  }
-
-  circle.node:hover {
-    stroke-width: 3px;
-  }
-</style>
+    .edit-box button {
+      background: #333;
+      color: white;
+      border: 1px solid white;
+      padding: 5px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
+  <svg></svg>
+  <div class="edit-box" style="display:none;">
+    <input id="node-label" placeholder="Node label" />
+    <input id="node-color" type="color" />
+    <button id="save-node">Save</button>
+  </div>
 
-<div id="menu-bar">
-  <h1>Mindspace Explorer</h1>
-  <button id="add-node-btn" title="Add New Node">+ Add Node</button>
-  <button id="clear-select-btn" title="Clear Selection">Clear Selection</button>
-</div>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script>
+    const svg = d3.select("svg");
+    const width = window.innerWidth;
+    const height = window.innerHeight;
 
-<svg id="mindmap"></svg>
+    let nodes = [];
+    let links = [];
+    let selectedNode = null;
+    let editingNode = null;
 
-<div id="edit-modal">
-  <input type="text" id="node-label" maxlength="40" placeholder="Node label" />
-  <input type="color" id="node-color" />
-  <button id="save-btn">Save</button>
-</div>
+    const gLinks = svg.append("g").attr("stroke", "white").attr("stroke-width", 2);
+    const gNodes = svg.append("g");
 
-<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
-<script>
-(() => {
-  const svg = d3.select("#mindmap");
-  const menuHeight = 48;
-  let width = window.innerWidth;
-  let height = window.innerHeight - menuHeight;
+    function invertColor(hex) {
+      const c = d3.color(hex);
+      if (!c) return "white";
+      const luminance = 0.299 * c.r + 0.587 * c.g + 0.114 * c.b;
+      return luminance > 186 ? "black" : "white";
+    }
 
-  let nodes = [];
-  let links = [];
-  let multiSelect = [];
-  let editingNode = null;
+    function update() {
+      gLinks.selectAll("line")
+        .data(links)
+        .join("line")
+        .attr("x1", d => d.source.x)
+        .attr("y1", d => d.source.y)
+        .attr("x2", d => d.target.x)
+        .attr("y2", d => d.target.y);
 
-  nodes.push({
-    id: "root",
-    label: "Root Idea",
-    x: width / 2,
-    y: height / 2,
-    color: "#38bdf8", // neon blue
-  });
+      const node = gNodes.selectAll("g")
+        .data(nodes, d => d.id)
+        .join(enter => {
+          const g = enter.append("g")
+            .call(drag)
+            .on("click", (event, d) => {
+              event.stopPropagation();
+              if (!selectedNode) {
+                selectedNode = d;
+                update();
+              } else if (selectedNode !== d) {
+                links.push({ source: selectedNode, target: d });
+                selectedNode = null;
+                update();
+              } else {
+                selectedNode = null;
+                update();
+              }
+            })
+            .on("contextmenu", (event, d) => {
+              event.preventDefault();
+              nodes = nodes.filter(n => n !== d);
+              links = links.filter(l => l.source !== d && l.target !== d);
+              if (selectedNode === d) selectedNode = null;
+              update();
+            });
 
-  const invertColor = (hex) => {
-    const c = d3.color(hex);
-    if (!c) return "white";
-    const luminance = 0.299 * c.r + 0.587 * c.g + 0.114 * c.b;
-    return luminance > 186 ? "black" : "white";
-  };
+          g.append("circle")
+            .attr("r", 30);
 
-  const simulation = d3.forceSimulation(nodes)
-    .force("link", d3.forceLink(links).id(d => d.id).distance(140))
-    .force("charge", d3.forceManyBody().strength(-400))
-    .force("center", d3.forceCenter(width / 2, height / 2))
-    .on("tick", ticked);
+          g.append("text")
+            .attr("text-anchor", "middle")
+            .attr("dy", "0.35em")
+            .style("pointer-events", "none");
 
-  const linkGroup = svg.append("g").attr("class", "links");
-  const nodeGroup = svg.append("g").attr("class", "nodes");
+          return g;
+        });
 
-  function update() {
-    links = links.map(l => ({
-      source: typeof l.source === "object" ? l.source.id : l.source,
-      target: typeof l.target === "object" ? l.target.id : l.target,
-    }));
+      gNodes.selectAll("g")
+        .attr("transform", d => `translate(${d.x},${d.y})`)
+        .select("circle")
+        .attr("fill", d => d.color || "#5555ff")
+        .attr("stroke", d => d === selectedNode ? "cyan" : "white")
+        .attr("stroke-width", d => d === selectedNode ? 4 : 2);
 
-    simulation.nodes(nodes);
-    simulation.force("link").links(links);
-    simulation.alpha(0.5).restart();
+      gNodes.selectAll("text")
+        .text(d => d.label)
+        .attr("fill", d => invertColor(d.color || "#5555ff"));
+    }
 
-    const link = linkGroup.selectAll("line.link").data(links, d => d.source + "-" + d.target);
-    link.exit().remove();
-    const linkEnter = link.enter().append("line").attr("class", "link");
-    linkEnter.merge(link);
-
-    const node = nodeGroup.selectAll("g.node").data(nodes, d => d.id);
-    node.exit().remove();
-
-    const nodeEnter = node.enter().append("g").attr("class", "node")
-      .call(d3.drag()
-        .on("start", dragstarted)
-        .on("drag", dragged)
-        .on("end", dragended))
-      .on("click", (event, d) => {
-        event.stopPropagation();
-        if (event.shiftKey) {
-          if (multiSelect.includes(d.id)) {
-            multiSelect = multiSelect.filter(id => id !== d.id);
-          } else {
-            multiSelect.push(d.id);
-          }
+    function drag(sim) {
+      return d3.drag()
+        .on("start", (event, d) => {
+          d.fx = d.x;
+          d.fy = d.y;
+        })
+        .on("drag", (event, d) => {
+          d.fx = event.x;
+          d.fy = event.y;
+          d.x = event.x;
+          d.y = event.y;
           update();
-        } else if (multiSelect.length > 0) {
-          multiSelect.forEach(source => {
-            if (source !== d.id && !links.find(l => (l.source === source && l.target === d.id) || (l.source === d.id && l.target === source))) {
-              links.push({ source, target: d.id });
-            }
-          });
-          multiSelect = [];
-          update();
-        } else {
-          openEditModal(d);
-        }
-      })
-      .on("contextmenu", (event, d) => {
-        event.preventDefault();
-        nodes = nodes.filter(n => n.id !== d.id);
-        links = links.filter(l => l.source !== d.id && l.target !== d.id);
-        if (editingNode && editingNode.id === d.id) {
-          closeEditModal();
-        }
-        update();
+        })
+        .on("end", (event, d) => {
+          d.fx = null;
+          d.fy = null;
+        });
+    }
+
+    svg.on("click", function (event) {
+      if (event.target.tagName !== "svg") return;
+      const [x, y] = d3.pointer(event);
+      nodes.push({
+        id: Date.now(),
+        label: "New Node",
+        color: "#5555ff",
+        x, y
       });
-
-    nodeEnter.append("circle")
-      .attr("class", "node")
-      .attr("r", 30)
-      .attr("fill", d => d.color || "#5555ff")
-      .attr("stroke", "#f59e0b");
-
-    nodeEnter.append("text")
-      .attr("dy", "0.35em")
-      .attr("text-anchor", "middle")
-      .attr("fill", d => invertColor(d.color || "#5555ff"))
-      .style("font-weight", "600")
-      .style("font-size", "14px")
-      .style("user-select", "none")
-      .text(d => d.label);
-
-    nodeEnter.merge(node)
-      .select("circle")
-      .attr("fill", d => d.color || "#5555ff")
-      .attr("stroke", d => multiSelect.includes(d.id) ? "#38bdf8" : "#f59e0b")
-      .attr("stroke-width", d => multiSelect.includes(d.id) ? 4 : 2);
-
-    nodeEnter.merge(node)
-      .select("text")
-      .text(d => d.label)
-      .attr("fill", d => invertColor(d.color || "#5555ff"));
-
-    simulation.alpha(0.5).restart();
-  }
-
-  function ticked() {
-    linkGroup.selectAll("line.link")
-      .attr("x1", d => getNodeById(d.source).x)
-      .attr("y1", d => getNodeById(d.source).y)
-      .attr("x2", d => getNodeById(d.target).x)
-      .attr("y2", d => getNodeById(d.target).y);
-
-    nodeGroup.selectAll("g.node")
-      .attr("transform", d => `translate(${d.x},${d.y})`);
-  }
-
-  function getNodeById(id) {
-    return typeof id === "object" ? id : nodes.find(n => n.id === id);
-  }
-
-  function dragstarted(event, d) {
-    if (!event.active) simulation.alphaTarget(0.3).restart();
-    d.fx = d.x;
-    d.fy = d.y;
-  }
-
-  function dragged(event, d) {
-    d.fx = event.x;
-    d.fy = event.y;
-  }
-
-  function dragended(event, d) {
-    if (!event.active) simulation.alphaTarget(0);
-    d.fx = null;
-    d.fy = null;
-  }
-
-  // Edit modal handling
-  const modal = document.getElementById("edit-modal");
-  const labelInput = document.getElementById("node-label");
-  const colorInput = document.getElementById("node-color");
-  const saveBtn = document.getElementById("save-btn");
-
-  function openEditModal(node) {
-    editingNode = node;
-    labelInput.value = node.label;
-    colorInput.value = node.color || "#5555ff";
-    modal.style.display = "block";
-    labelInput.focus();
-  }
-
-  function closeEditModal() {
-    editingNode = null;
-    modal.style.display = "none";
-  }
-
-  saveBtn.onclick = () => {
-    if (!editingNode) return;
-    editingNode.label = labelInput.value.trim() || editingNode.label;
-    editingNode.color = colorInput.value;
-    update();
-    closeEditModal();
-  };
-
-  // Click on background to close edit modal and clear multiSelect
-  svg.on("click", () => {
-    if (editingNode) {
-      closeEditModal();
-    }
-    multiSelect = [];
-    update();
-  });
-
-  // Add node button
-  document.getElementById("add-node-btn").onclick = () => {
-    const id = Date.now().toString();
-    nodes.push({ id, label: "New Node", x: width / 2, y: height / 2, color: "#5555ff" });
-    update();
-  };
-
-  // Clear multi-select button
-  document.getElementById("clear-select-btn").onclick = () => {
-    multiSelect = [];
-    update();
-  };
-
-  // Resize handling
-  window.addEventListener("resize", () => {
-    width = window.innerWidth;
-    height = window.innerHeight - menuHeight;
-    svg.attr("width", width).attr("height", height);
-    simulation.force("center", d3.forceCenter(width / 2, height / 2));
-    simulation.alpha(0.5).restart();
-  });
-
-  // Initial setup
-  svg.attr("width", width).attr("height", height);
-  update();
-
-  // Add nodes by clicking empty space
-  svg.node().addEventListener("click", e => {
-    if (e.target.tagName === "svg" && !editingNode) {
-      const coords = d3.pointer(e, svg.node());
-      const id = Date.now().toString();
-      nodes.push({ id, label: "New Node", x: coords[0], y: coords[1], color: "#5555ff" });
+      selectedNode = null;
       update();
-    }
-  });
-})();
-</script>
+    });
 
+    svg.on("dblclick", function (event) {
+      const [x, y] = d3.pointer(event);
+      const clicked = nodes.find(n =>
+        Math.hypot(n.x - x, n.y - y) < 30
+      );
+      if (clicked) {
+        editingNode = clicked;
+        document.querySelector(".edit-box").style.display = "flex";
+        document.getElementById("node-label").value = clicked.label;
+        document.getElementById("node-color").value = clicked.color;
+      }
+    });
+
+    document.getElementById("save-node").onclick = () => {
+      if (!editingNode) return;
+      editingNode.label = document.getElementById("node-label").value;
+      editingNode.color = document.getElementById("node-color").value;
+      editingNode = null;
+      document.querySelector(".edit-box").style.display = "none";
+      update();
+    };
+
+    update();
+  </script>
 </body>
 </html>
